@@ -3,13 +3,15 @@ const router = express.Router();
 const pool = require('../db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const authMiddleware = require('../middleware/authMiddleware');
+const checkRole = require('../middleware/checkRole'); // ✅ добавили
 
 const JWT_SECRET = 'your_jwt_secret_key';  // для продакшена лучше хранить в .env
 
-// Получить всех пользователей (без паролей)
-router.get('/', async (req, res) => {
+// Получить всех пользователей (без паролей) — доступ только admin
+router.get('/', authMiddleware, checkRole('admin'), async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, name, email FROM users');
+    const result = await pool.query('SELECT id, name, email, role FROM users');
     res.json(result.rows);
   } catch (err) {
     console.error(err);
@@ -17,7 +19,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Регистрация с проверкой email и хешированием пароля
+// Регистрация с проверкой email и хешированием пароля — без защиты
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -31,10 +33,10 @@ router.post('/register', async (req, res) => {
     // Хешируем пароль
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Создаём пользователя
+    // Создаём пользователя (по умолчанию с ролью user)
     const result = await pool.query(
-      'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email',
-      [name, email, hashedPassword]
+      'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
+      [name, email, hashedPassword, 'user']
     );
 
     res.status(201).json(result.rows[0]);
@@ -44,7 +46,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Логин и выдача JWT токена
+// Логин и выдача JWT токена — без защиты
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -62,7 +64,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Неверный email или пароль' });
     }
 
-    // Создаем JWT с payload, например, userId и роль (если есть)
+    // Создаем JWT с userId и role
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role || 'user' },
       JWT_SECRET,
@@ -76,8 +78,8 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Удаление пользователя (оставим как есть)
-router.delete('/:id', async (req, res) => {
+// Удаление пользователя — доступ только admin
+router.delete('/:id', authMiddleware, checkRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [id]);

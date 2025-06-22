@@ -2,7 +2,6 @@
 const express = require('express');
 const app = express();
 const pool = require('./db');
-const usersRouter = require('./routes/users');
 
 app.use(express.json());
 
@@ -16,7 +15,17 @@ pool.query('SELECT NOW()', (err, res) => {
 });
 
 // 3. Роуты
+const tasksRouter = require('./routes/tasks');
+app.use('/tasks', tasksRouter);
+
+const projectsRouter = require('./routes/projects');
+app.use('/projects', projectsRouter);
+
+const usersRouter = require('./routes/users');
 app.use('/users', usersRouter);
+
+const dashboardRoutes = require('./routes/dashboard');
+app.use('/dashboard', dashboardRoutes);
 
 // 4. Главный маршрут
 app.get('/', (req, res) => {
