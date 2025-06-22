@@ -5,9 +5,12 @@
 ## Стек технологий
 
 - Node.js  
-- Express.js  
-- PostgreSQL  
-- JWT для авторизации  
+- Express 5 (серверный фреймворк)  
+- PostgreSQL (база данных)  
+- pg (PostgreSQL-клиент для Node.js)  
+- bcrypt (хэширование паролей)  
+- jsonwebtoken (JWT-аутентификация)  
+- nodemon (автоперезапуск сервера при разработке)
 
 ## Возможности
 
